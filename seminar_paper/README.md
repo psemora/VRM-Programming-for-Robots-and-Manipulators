@@ -1,1 +1,1 @@
-This seminar paper is about two robot rovers on Mars - Curiosity and Perseverance.
+This seminar paper briefly discuss about two robotic rovers discovering Mars - Curiosity and Perseverance.
