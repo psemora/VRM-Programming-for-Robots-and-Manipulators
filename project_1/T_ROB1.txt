@@ -1,0 +1,192 @@
+MODULE Module1
+    
+    CONST robtarget T_home:=[[450.999987804,0.004,610.099],[-0.000000022,0,1,0],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_tab_init:=[[242.75815166,551.883335499,37.5],[-0.000000022,0,1,0],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P1_B:=[[522.546152493,300.84507455,26.999976694],[-0.000000036,0.000000014,1,-0.000000012],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P1_A:=[[522.546158099,-0.543141663,26.999997982],[-0.000000037,0.000000014,1,-0.000000012],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P2_B:=[[610.046189192,300.845083218,26.999977021],[-0.000000026,0.000000008,1,-0.000000006],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P2_A:=[[610.046190594,0.845063109,26.999976275],[-0.000000029,0.000000008,1,-0.000000006],[0,-1,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P3_B:=[[697.546171475,300.845085829,27.000001484],[-0.000000023,0.000000006,1,-0.000000003],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_P3_A:=[[697.546142633,0.845063066,26.999952354],[-0.000000059,0.000000006,1,-0.000000003],[0,-1,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_CONV_1:=[[387.93615166,-684.543664501,175.763],[-0.000000059,0.000000006,1,-0.000000003],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_CONV_2:=[[475.43615166,-684.543664501,151.534],[-0.000000059,0.000000006,1,-0.000000003],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_CONV_3:=[[300.43615166,-684.543664501,151.534],[-0.000000059,0.000000006,1,-0.000000003],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    VAR num actual_state := 0;
+    PERS speeddata speed_fast:=[400,500,5000,1000];
+    PERS speeddata speed_slow:=[100,500,5000,1000];
+   
+    
+    !Choose object to P&P (1-orange, 2-blue, 3-red):
+    VAR num object := 1;
+
+       PROC main()
+        TEST actual_state  
+            CASE 0: 
+                Init_state;
+                !Homing robot 1
+                MoveL T_home,speed_fast,fine,smc_gripper\WObj:=wobj0;
+                actual_state := 1;
+            CASE 1:
+                Path_Init_tab;
+                actual_state := 2;
+            CASE 2:
+                IF object = 1 THEN
+                    actual_state := 3;
+                ELSEIF object = 2 THEN
+                    actual_state := 4;
+                ELSE
+                    actual_state:= 5;
+                ENDIF
+            CASE 3: 
+                Path_orange;
+                actual_state:= 6;
+            CASE 4:  
+                Path_blue;
+                actual_state:= 6;
+            CASE 5:
+                Path_red;
+                actual_state:= 6;
+            CASE 6:
+                !Homing
+                MoveL T_home,speed_fast,z100,smc_gripper\WObj:=wobj0;
+                !Start conveyor
+                SetDO DO_CONV_MOVE,1;
+                actual_state := 10;
+            CASE 10:
+                !do nothing
+        ENDTEST
+    ENDPROC
+    
+    PROC Init_state()
+        !Init state - reset environment, detach objects, stop conveyor
+        PulseDO DO_POS_A_P1;    
+        PulseDO DO_POS_A_P2;
+        PulseDO DO_POS_A_P3;
+        PulseDO DO_POS_B_P1;
+        PulseDO DO_POS_B_P2;
+        PulseDO DO_POS_B_P3;
+        PulseDO DO_POS_HOLDER;
+        PulseDO DO_POS_TAB_INIT;
+        PulseDO DO_DETACH_A_P1;
+        PulseDO DO_DETACH_A_P2;
+        PulseDO DO_DETACH_A_P3;
+        PulseDO DO_DETACH_B_P1;
+        PulseDO DO_DETACH_B_P2;
+        PulseDO DO_DETACH_B_P3;
+        PulseDO DO_DETACH_HOLDER;
+        PulseDO DO_DETACH_TAB_INIT;
+        SetDO DO_CONV_MOVE,0;
+    ENDPROC
+    
+    PROC Path_Init_tab()
+        !P&P init tab object
+        MoveL Offs(T_tab_init, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_tab_init, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_TAB_INIT;
+        Waittime 0.25;
+        MoveL Offs(T_tab_init, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_1, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_1, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_TAB_INIT;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_1, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+    ENDPROC
+    
+    PROC Path_orange()
+        !P&P orange object - P1_A 
+        MoveL Offs(T_P1_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P1_A, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_A_P1;
+        Waittime 0.25;
+        MoveL Offs(T_P1_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_A_P1;
+        PulseDO DO_ATTACH_I_AP1;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        
+        !P&P orange object - P1_B
+        MoveL Offs(T_P1_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P1_B, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_B_P1;
+        Waittime 0.25;
+        MoveL Offs(T_P1_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_B_P1;
+        PulseDO DO_ATTACH_I_BP1;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+    ENDPROC
+    
+    PROC Path_blue()
+        !P&P blue object - P2_A
+        MoveL Offs(T_P2_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P2_A, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_A_P2;
+        Waittime 0.25;
+        MoveL Offs(T_P2_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_A_P2;
+        PulseDO DO_ATTACH_I_AP2;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        
+        !P&P blue object - P2_B
+        MoveL Offs(T_P2_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P2_B, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_B_P2;
+        Waittime 0.25;
+        MoveL Offs(T_P2_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_B_P2;
+        PulseDO DO_ATTACH_I_BP2;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+    ENDPROC
+    
+    PROC Path_red()
+        !P&P red object - P3_A
+        MoveL Offs(T_P3_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P3_A, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_A_P3;
+        Waittime 0.25;
+        MoveL Offs(T_P3_A, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_2, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_A_P3;
+        PulseDO DO_ATTACH_I_AP3;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_2, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        
+        !P&P blue object - P3_B
+        MoveL Offs(T_P3_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_P3_B, 0, 0, 0),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        WaitTime 0.25;
+        PulseDO DO_ATTACH_B_P3;
+        Waittime 0.25;
+        MoveL Offs(T_P3_B, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+        MoveL Offs(T_CONV_3, 0, 0, 12),speed_slow,fine,smc_gripper\WObj:=wobj0;
+        Waittime 0.25; 
+        PulseDO DO_DETACH_B_P3;
+        PulseDO DO_ATTACH_I_BP3;
+        Waittime 0.25;
+        MoveL Offs(T_CONV_3, 0, 0, 100),speed_fast,z100,smc_gripper\WObj:=wobj0;
+    ENDPROC     
+ENDMODULE
