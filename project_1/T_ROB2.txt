@@ -1,0 +1,72 @@
+MODULE Module1 
+    CONST robtarget T_HOME:=[[457.253399232,-3308.283807151,692.9],[-0.000000022,0,1,0],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_CONV:=[[387.913030116,-2573.291877476,176.05],[-0.000000016,0.707106781,0.707106781,-0.000000016],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_BOX:=[[701.21215166,-3212.571664501,32],[-0.000000022,0,1,0],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget T_HOLD:=[[507.33515166,-3746.096664501,25],[-0.000000022,0,1,0],[0,0,0,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    PERS speeddata speed_fast;
+    PERS speeddata speed_slow;
+    VAR num actual_state := 0;
+    
+    
+PROC main()
+        TEST actual_state
+            CASE 0:
+                Init_state;
+                IF DI_CONV_SENS = 1 THEN !Init tab with objects is in range of Robot2 - Plane sensor is active 
+                    SetDO DO_CONV_MOVE, 0; !stop conveyor
+                    actual_state := 1;
+                ENDIF  
+            CASE 1:
+                Path_package;
+                actual_state := 2;
+            CASE 2:
+                Path_holder;
+                actual_state := 10;
+            CASE 10:
+                !do nothing
+        ENDTEST
+    ENDPROC
+ 
+    
+    PROC Init_state ()
+        MoveJ T_HOME,speed_fast,fine,Servo\WObj:=wobj0; !Homing Robot2
+        PulseDO DO_CLOSE; !
+    ENDPROC
+    
+    PROC Path_package()
+        !Pick object from conveyor and give it to box with smart gripper 
+        MoveL Offs(T_CONV, 0, 0, 100),speed_fast,z100,Servo\WObj:=wobj0;
+        PulseDO DO_OPEN;
+        MoveL Offs(T_CONV, 2, 3, 8),speed_slow,fine,Servo\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_ATTACH_ROB2_INIT;
+        PulseDO DO_CLOSE;
+        Waittime 0.25;
+        MoveL Offs(T_CONV, 0, 0, 100),speed_fast,z100,Servo\WObj:=wobj0;
+        MoveL Offs(T_BOX, 0, 0, 200),speed_fast,z100,Servo\WObj:=wobj0;
+        MoveL Offs(T_BOX, 0, 0, 40),speed_slow,fine,Servo\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_OPEN;
+        PulseDO DO_DETACH_TAB_INIT;
+        Waittime 0.25;
+        MoveL Offs(T_BOX, 0, 0, 100),speed_fast,z100,Servo\WObj:=wobj0;
+    ENDPROC
+    
+    PROC Path_holder()
+        !Pick holder and put it on the box with vacuum effector
+        MoveJ Offs(T_HOLD, 0, 0, 100),speed_fast,z100,VaccumOne\WObj:=wobj0;
+        MoveJ Offs(T_HOLD, 0, 0, 0),speed_slow,fine,VaccumOne\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_ATTACH_ROB2_HOLDER;
+        Waittime 0.25;
+        MoveJ Offs(T_HOLD, 0, 0, 100),speed_fast,z100,VaccumOne\WObj:=wobj0;
+        MoveJ Offs(T_BOX, 0, 0, 120),speed_fast,z100,VaccumOne\WObj:=wobj0;
+        MoveJ Offs(T_BOX, 0, 0, 60),speed_slow,fine,VaccumOne\WObj:=wobj0;
+        Waittime 0.25;
+        PulseDO DO_DETACH_HOLDER;
+        Waittime 0.25;
+        MoveJ Offs(T_BOX, 0, 0, 100),speed_fast,z100,VaccumOne\WObj:=wobj0;
+        MoveJ T_HOME,speed_fast,fine,Servo\WObj:=wobj0;
+        PulseDO DO_CLOSE;
+    ENDPROC
+ENDMODULE
