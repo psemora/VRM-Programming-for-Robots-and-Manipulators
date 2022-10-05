@@ -3,14 +3,18 @@ Team project 2 is laboratory test cell made in Visual Components 4.3.
 Visual Components software is used for applications including layout planning, production simulation, off-line programming and PLC verification.
 
 ## Images
-![image1](images/img_01.PNG)
+
+![image1](images/IMG_01.PNG)
 
 <br/>
-![image2](images/img_02.PNG)
+
+![image2](images/IMG_02.PNG)
 
 <br/>
-![image3](images/img_03.PNG)
+
+![image3](images/IMG_03.PNG)
 
 <br/>
-![image4](images/img_04.PNG)
+
+![image4](images/IMG_04.PNG)
 
